@@ -1,68 +1,43 @@
 pipeline {
     agent any
-    
-    stages {
-        stage('Clone Repository') {
-            steps {
-                checkout scm
+
+    stages { //stages =- "collection of jobs/stage/task == pipeline"
+        stage('Download/clone the source repo from github') { //stage == job == task //job1
+            steps { // each job/task can have have multiple steps
+               git branch: 'main', url: 'https://github.com/gurkiran333/flask-app-demo.git'
             }
         }
-        
-        stage('Install Python & pip') {
-            steps {
-                sh '''
-                    # Alpine Linux ke liye apk package manager
-                    apk add --no-cache python3 py3-pip
-                    python3 -m pip install --upgrade pip
-                '''
-            }
+        stage("Install pip3"){ //job2
+            steps{
+                sh "yum install python3-pip -y"
         }
-        
-        stage('Install Python Dependencies') {
-            steps {
-                sh '''
-                    pip3 install flake8 pytest
-                    if [ -f requirements.txt ]; then
-                        pip3 install -r requirements.txt
-                    fi
-                '''
-            }
         }
-        
-        stage('Run flake8 & Unit Tests') {
-            steps {
-                sh '''
-                    echo "Running flake8..."
-                    flake8 . --exit-zero || true
-                    
-                    echo "Running tests..."
-                    python3 -m pytest || echo "No tests found"
-                '''
-            }
+        stage("Install dependencies"){ //job3
+            steps{
+                sh "pip3 install -r requirements.txt"
         }
-        
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                    docker build -t my-flask-app:latest .
-                '''
-            }
         }
-        
-        stage('Run Docker Container') {
-            steps {
-                sh '''
-                    docker stop my-flask-app || true
-                    docker rm my-flask-app || true
-                    docker run -d --name my-flask-app -p 5000:5000 my-flask-app:latest
-                '''
-            }
+        stage("Execute flake8 scan and execute unit test cases"){ //job4
+            steps{
+                sh "flake8 ."
+                sh "pytest"
         }
-        
-        stage('Deployment Success') {
-            steps {
-                echo 'Application deployed successfully on port 5000'
-            }
+        }
+        stage("Build Docker Image"){ //job5
+            steps{
+                sh "docker build -t mywebimg:latest ."
+        }
+        }
+        stage("Run Docker Container"){ //job6
+            steps{
+                sh "docker rm -f webos"
+                sh "docker run -dit --name webos -p 80:80 mywebimg"
+        }
+        }
+        stage("succesfull deployment"){ //job7
+            steps{
+                echo "Application Deployed Successfully"
+        }
         }
     }
 }
