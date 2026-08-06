@@ -8,10 +8,19 @@ pipeline {
             }
         }
         
+        stage('Install Python & pip') {
+            steps {
+                sh '''
+                    # Alpine Linux ke liye apk package manager
+                    apk add --no-cache python3 py3-pip
+                    python3 -m pip install --upgrade pip
+                '''
+            }
+        }
+        
         stage('Install Python Dependencies') {
             steps {
                 sh '''
-                    pip3 install --upgrade pip
                     pip3 install flake8 pytest
                     if [ -f requirements.txt ]; then
                         pip3 install -r requirements.txt
@@ -52,7 +61,7 @@ pipeline {
         
         stage('Deployment Success') {
             steps {
-                echo '✅ Application deployed successfully on port 5000'
+                echo 'Application deployed successfully on port 5000'
             }
         }
     }
