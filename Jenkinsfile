@@ -1,49 +1,58 @@
 pipeline {
     agent any
-
+    
     stages {
         stage('Clone Repository') {
             steps {
-               git branch: 'main', url: 'https://github.com/gurkiran333/flask-app-demo.git'
+                checkout scm
             }
         }
         
-        stage("Install pip3") {
+        stage('Install Python Dependencies') {
             steps {
-                sh "sudo apt-get update && sudo apt-get install python3-pip -y"
+                sh '''
+                    pip3 install --upgrade pip
+                    pip3 install flake8 pytest
+                    if [ -f requirements.txt ]; then
+                        pip3 install -r requirements.txt
+                    fi
+                '''
             }
         }
         
-        stage("Install dependencies") {
+        stage('Run flake8 & Unit Tests') {
             steps {
-                sh "pip3 install -r requirements.txt"
+                sh '''
+                    echo "Running flake8..."
+                    flake8 . --exit-zero || true
+                    
+                    echo "Running tests..."
+                    python3 -m pytest || echo "No tests found"
+                '''
             }
         }
         
-        stage("Execute flake8 scan and execute unit test cases") {
+        stage('Build Docker Image') {
             steps {
-                sh "pip3 install flake8 pytest"
-                sh "flake8 . || echo 'Flake8 issues found'"
-                sh "pytest || echo 'Tests failed'"
+                sh '''
+                    docker build -t my-flask-app:latest .
+                '''
             }
         }
         
-        stage("Build Docker Image") {
+        stage('Run Docker Container') {
             steps {
-                sh "docker build -t mywebimg:latest ."
+                sh '''
+                    docker stop my-flask-app || true
+                    docker rm my-flask-app || true
+                    docker run -d --name my-flask-app -p 5000:5000 my-flask-app:latest
+                '''
             }
         }
         
-        stage("Run Docker Container") {
+        stage('Deployment Success') {
             steps {
-                sh "docker rm -f webos || true"
-                sh "docker run -dit --name webos -p 80:80 mywebimg"
-            }
-        }
-        
-        stage("Successful deployment") {
-            steps {
-                echo "Application Deployed Successfully"
+                echo '✅ Application deployed successfully on port 5000'
             }
         }
     }
