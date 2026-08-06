@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'ec2'
-    }
+    agent any
 
     stages { //stages =- "collection of jobs/stage/task == pipeline"
         stage('Download/clone the source repo from github') { //stage == job == task //job1
