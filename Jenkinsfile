@@ -2,47 +2,47 @@ pipeline {
     agent any
 
     stages {
-        stage('Download/clone the source repo from github') {
+        stage('Clone Repository') {
             steps {
                git branch: 'main', url: 'https://github.com/gurkiran333/flask-app-demo.git'
             }
         }
         
         stage("Install pip3") {
-            steps{
-                sh "apt-get update && apt-get install python3-pip -y"
+            steps {
+                sh "sudo apt-get update && sudo apt-get install python3-pip -y"
             }
         }
         
         stage("Install dependencies") {
-            steps{
+            steps {
                 sh "pip3 install -r requirements.txt"
             }
         }
         
         stage("Execute flake8 scan and execute unit test cases") {
-            steps{
+            steps {
                 sh "pip3 install flake8 pytest"
-                sh "flake8 . || true"  // || true means ignore errors
-                sh "pytest || true"
+                sh "flake8 . || echo 'Flake8 issues found'"
+                sh "pytest || echo 'Tests failed'"
             }
         }
         
         stage("Build Docker Image") {
-            steps{
+            steps {
                 sh "docker build -t mywebimg:latest ."
             }
         }
         
         stage("Run Docker Container") {
-            steps{
+            steps {
                 sh "docker rm -f webos || true"
                 sh "docker run -dit --name webos -p 80:80 mywebimg"
             }
         }
         
         stage("Successful deployment") {
-            steps{
+            steps {
                 echo "Application Deployed Successfully"
             }
         }
