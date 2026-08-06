@@ -4,7 +4,7 @@ pipeline {
     stages { //stages =- "collection of jobs/stage/task == pipeline"
         stage('Download/clone the source repo from github') { //stage == job == task //job1
             steps { // each job/task can have have multiple steps
-               git branch: 'main', url: 'git@github.com:gurkiran333/flask-app-demo.git'
+               git branch: 'main', url: 'https://github.com/gurkiran333/flask-app-demo.git'
             }
         }
         stage("Install pip3"){ //job2
