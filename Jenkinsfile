@@ -1,43 +1,62 @@
+```groovy
 pipeline {
     agent any
 
-    stages { //stages =- "collection of jobs/stage/task == pipeline"
-        stage('Download/clone the source repo from github') { //stage == job == task //job1
-            steps { // each job/task can have have multiple steps
-               git branch: 'main', url: 'https://github.com/gurkiran333/flask-app-demo.git'
+    stages {
+
+        stage('Install Python') {
+            steps {
+                sh '''
+                    apt-get update
+                    apt-get install -y python3 python3-pip
+                '''
             }
         }
-        stage("Install pip3"){ //job2
-            steps{
-                sh "yum install python3-pip -y"
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    pip3 install -r requirements.txt
+                    pip3 install flake8 pytest
+                '''
+            }
         }
+
+        stage('Code Quality and Unit Tests') {
+            steps {
+                sh '''
+                    flake8 .
+                    pytest
+                '''
+            }
         }
-        stage("Install dependencies"){ //job3
-            steps{
-                sh "pip3 install -r requirements.txt"
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t flask-app:latest .
+                '''
+            }
         }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                    docker rm -f flask-app || true
+
+                    docker run -d \
+                        --name flask-app \
+                        -p 5000:5000 \
+                        flask-app:latest
+                '''
+            }
         }
-        stage("Execute flake8 scan and execute unit test cases"){ //job4
-            steps{
-                sh "flake8 ."
-                sh "pytest"
-        }
-        }
-        stage("Build Docker Image"){ //job5
-            steps{
-                sh "docker build -t mywebimg:latest ."
-        }
-        }
-        stage("Run Docker Container"){ //job6
-            steps{
-                sh "docker rm -f webos"
-                sh "docker run -dit --name webos -p 80:80 mywebimg"
-        }
-        }
-        stage("succesfull deployment"){ //job7
-            steps{
-                echo "Application Deployed Successfully"
-        }
+
+        stage('Successful Deployment') {
+            steps {
+                echo 'Flask application deployed successfully!'
+            }
         }
     }
 }
+```
