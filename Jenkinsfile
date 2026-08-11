@@ -2,12 +2,11 @@ pipeline {
     agent any
 
     stages {
-
-        stage('Install Python') {
+        stage('Setup Environment') {
             steps {
                 sh '''
                     apt-get update
-                    apt-get install -y python3 python3-pip
+                    apt-get install -y python3 python3-pip docker.io
                 '''
             }
         }
@@ -24,8 +23,8 @@ pipeline {
         stage('Code Quality and Unit Tests') {
             steps {
                 sh '''
-                    flake8 .
-                    pytest
+                    python3 -m flake8 .
+                    python3 -m pytest
                 '''
             }
         }
@@ -42,11 +41,7 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f flask-app || true
-
-                    docker run -d \
-                        --name flask-app \
-                        -p 5000:5000 \
-                        flask-app:latest
+                    docker run -d --name flask-app -p 5000:5000 flask-app:latest
                 '''
             }
         }
