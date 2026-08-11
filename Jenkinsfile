@@ -6,7 +6,7 @@ pipeline {
             steps {
                 sh '''
                     apt-get update
-                    apt-get install -y python3 python3-pip docker.io
+                    apt-get install -y python3 python3-pip python3-venv docker.io
                 '''
             }
         }
@@ -14,8 +14,14 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    pip3 install -r requirements.txt
-                    pip3 install flake8 pytest
+                    # Virtual environment banayein
+                    python3 -m venv venv
+                    
+                    # Activate aur packages install karein
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install flake8 pytest
                 '''
             }
         }
@@ -23,8 +29,9 @@ pipeline {
         stage('Code Quality and Unit Tests') {
             steps {
                 sh '''
-                    python3 -m flake8 .
-                    python3 -m pytest
+                    . venv/bin/activate
+                    flake8 .
+                    pytest
                 '''
             }
         }
@@ -41,7 +48,11 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f flask-app || true
-                    docker run -d --name flask-app -p 5000:5000 flask-app:latest
+                    docker run -d \
+                        --name flask-app \
+                        -p 5000:5000 \
+                        --restart=always \
+                        flask-app:latest
                 '''
             }
         }
