@@ -7,5 +7,5 @@ RUN groupadd -r appuser && \
     pip install --no-cache-dir -r requirements.txt && \
     chown -R appuser:appuser /app
 USER appuser
-EXPOSE 80
+EXPOSE 5000
 CMD ["python", "app.py"]
