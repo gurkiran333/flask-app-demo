@@ -97,7 +97,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=flaskapp
-            -Dsonar.projectName=Flask Application
+            -Dsonar.projectName=Flask_Application
             -Dsonar.sources=.
             -Dproject.settings=sonar-project.properties
 
