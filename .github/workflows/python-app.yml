@@ -94,6 +94,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=flaskapp
+            -Dsonar.projectName=Flask Application
+            -Dsonar.sources=.
+            -Dproject.settings=sonar-project.properties
 
   # Step 11: Trigger Jenkins CD pipeline
       - name: Trigger Jenkins CD
