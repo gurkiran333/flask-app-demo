@@ -98,5 +98,5 @@ jobs:
   # Step 11: Trigger Jenkins CD pipeline
       - name: Trigger Jenkins CD
         run: |
-          curl -i -X POST "http://15.206.194.186:8080/job/flaskapp-cd/build?token=${{ secrets.JENKINS_JOB_TOKEN }}" \
+          curl -i -X POST "http://15.206.194.186:8080/job/flaskapp/build?token=${{ secrets.JENKINS_JOB_TOKEN }}" \
           --user "${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}"
