@@ -1,66 +1,78 @@
 pipeline {
     agent any
-
+    
+    environment {
+        IMAGE = "gurkiran24/flask-app"
+        TAG   = "latest"
+    }
     stages {
-        stage('Setup Environment') {
+        stage('Check Docker') {
             steps {
                 sh '''
-                    apt-get update
-                    apt-get install -y python3 python3-pip python3-venv docker.io
+                    docker --version
+                    docker ps
                 '''
             }
         }
-
-        stage('Install Dependencies') {
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                        -u "$DOCKER_USERNAME" \
+                        --password-stdin
+                    '''
+                }
+            }
+        }
+        stage('Pull Latest Image') {
             steps {
                 sh '''
-                    # Virtual environment banayein
-                    python3 -m venv venv
-                    
-                    # Activate aur packages install karein
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                    pip install flake8 pytest
+                    docker pull ${IMAGE}:${TAG}
                 '''
             }
         }
-
-        stage('Code Quality and Unit Tests') {
+        stage('Stop Old Container') {
             steps {
                 sh '''
-                    . venv/bin/activate
-                    flake8 .
-                    pytest
+                    docker rm -f flaskapp || true
                 '''
             }
         }
-
-        stage('Build Docker Image') {
+        stage('Deploy New Container') {
             steps {
                 sh '''
-                    docker build -t flask-app:latest .
-                '''
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                sh '''
-                    docker rm -f flask-app || true
                     docker run -d \
-                        --name flask-app \
-                        -p 5000:5000 \
-                        --restart=always \
-                        flask-app:latest
+                    --name flaskapp \
+                    -p 5000:5000 \
+                    ${IMAGE}:${TAG}
                 '''
             }
         }
-
-        stage('Successful Deployment') {
+        stage('Verify Deployment') {
             steps {
-                echo 'Flask application deployed successfully!!!'
+                sh '''
+                    docker ps
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Flask app deployed successfully!"
+        }
+        failure {
+            echo "Deployment failed!"
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }
