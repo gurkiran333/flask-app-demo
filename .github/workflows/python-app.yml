@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest
+        pip install flake8 pytest pytest-cov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
     # Step 4: Lint with flake8
@@ -39,41 +39,42 @@ jobs:
       run: |
         # Stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
         # Exit-zero treats all errors as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
-    # Step 5: Test with pytest
-    - name: Test with pytest
+    # Step 5: Test and generate coverage report
+    - name: Test with pytest and generate coverage
       run: |
-        pytest
-    
-    # Step 6: Login to Docker Hub
+        pytest --cov=. --cov-report=xml
+
+    # Step 6: Verify coverage report
+    - name: Check coverage report
+      run: |
+        ls -la 
+        test -f coverage.xml
+
+    # Step 7: SonarQube Scan 
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master 
+      env: 
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}    
+
+    # Step 8: Login to Docker Hub
     - name: Login to Docker Hub
       run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKER_PASSWORD }}" | \
+          docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
     
-    # Step 7: Build Docker image
+    # Step 9: Build Docker image
     - name: Build Docker image
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
         docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }} .
-    
-    # Step 8: Push Docker image to Docker Hub
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
-        docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}
-    
-    # Step 9: Show image details
-    - name: Image details
-      run: |
-        echo "Docker image pushed successfully!"
-        echo "Image: ${{ secrets.DOCKER_USERNAME }}/flask-app:latest"
-        echo "Image: ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}"
-        echo "Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/flask-app"
-    
-    # Step 10: Optional - Basic security scan
-    - name: Scan Docker image (Optional)
+
+    # Step 10: Docker image security scan
+    - name: Scan Docker image
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
@@ -81,22 +82,23 @@ jobs:
         exit-code: '0'  # Don't fail the build
         severity: 'CRITICAL,HIGH'
       continue-on-error: true
+    
+    # Step 11: Push Docker image to Docker Hub
+    - name: Push Docker image to Docker Hub
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}
+    
+    # Step 11: Show image details
+    - name: Image details
+      run: |
+        echo "Docker image pushed successfully!"
+        echo "Image: ${{ secrets.DOCKER_USERNAME }}/flask-app:latest"
+        echo "Image: ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}"
+        echo "Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/flask-app"
 
-  Scanner:
-  # Step 11: SonarQube Scan
-    name: SonarQube-Scanner
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-  # Step 11: Trigger Jenkins CD pipeline
-      - name: Trigger Jenkins CD
-        run: |
-          curl -i -X POST "http://15.206.194.186:8080/job/flaskapp-cd/build?token=${{ secrets.JENKINS_JOB_TOKEN }}" \
-          --user "${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}"
+    # Step 13: Trigger Jenkins CD pipeline
+    - name: Trigger Jenkins CD
+      run: |
+        curl -i -X POST "http://65.2.37.245:8080/job/flaskapp/build?token=${{ secrets.JENKINS_JOB_TOKEN }}" \
+        --user "${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}"
