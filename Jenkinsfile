@@ -1,6 +1,7 @@
 pipeline {
-    agent any
-    
+    agent {
+        label 'docker-cd-agent'
+    }
     environment {
         IMAGE = "gurkiran24/flask-app"
         TAG   = "latest"
